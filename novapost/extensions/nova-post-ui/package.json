@@ -1,0 +1,17 @@
+{
+  "name": "nova-post-ui",
+  "private": true,
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "react": "^18.0.0",
+    "@shopify/ui-extensions": "2024.4.x",
+    "@shopify/ui-extensions-react": "2024.4.x",
+    "@mui/material": "^5.15.15",
+    "axios": "^1.6.8"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "react-reconciler": "0.29.0"
+  }
+}

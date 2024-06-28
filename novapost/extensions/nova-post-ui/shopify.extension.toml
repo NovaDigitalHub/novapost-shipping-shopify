@@ -1,0 +1,24 @@
+api_version = "2024-01"
+
+[[extensions]]
+type = "ui_extension"
+name = "nova-post-ui"
+handle = "checkout-ui"
+
+  [[extensions.targeting]]
+  target = "purchase.thank-you.customer-information.render-after"
+  module = "./src/Checkout.jsx"
+  export = "novaPostDelivery"
+
+[extensions.capabilities]
+api_access = true
+network_access = true
+block_progress = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,write_shipping,read_customers,read_shipping"
+
+[[extensions.metafields]]
+namespace = "some_namespace"
+key = "some_key"

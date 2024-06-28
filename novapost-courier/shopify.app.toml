@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "a1e5c530861a386509fe6c2c3056c383"
+name = "Nova Post Courier"
+handle = "nova-post-courier"
+application_url = "https://clarity-boss-situations-tab.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "quickstart-4f00cd57.myshopify.com"
+include_config_on_deploy = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_shipping,write_products,write_shipping"
+
+[auth]
+redirect_urls = [
+  "https://clarity-boss-situations-tab.trycloudflare.com/auth/callback",
+  "https://clarity-boss-situations-tab.trycloudflare.com/auth/shopify/callback",
+  "https://clarity-boss-situations-tab.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-04"
+
+[pos]
+embedded = false
