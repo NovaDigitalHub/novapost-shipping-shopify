@@ -76,7 +76,7 @@ Admin Panel:
 Refer to `package.json` for a complete list of dependencies.
 
 ## Support
-For support, contact Novapost.
+For support, contact servicedesk@novapost.com.
 
 ## License
 This project is licensed under the MIT License.

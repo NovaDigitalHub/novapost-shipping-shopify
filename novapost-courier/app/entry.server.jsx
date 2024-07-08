@@ -4,8 +4,11 @@ import { RemixServer } from "@remix-run/react";
 import { createReadableStreamFromReadable } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { scheduleCronJobs } from "./jobs/cron";
 
 const ABORT_DELAY = 5000;
+
+scheduleCronJobs();
 
 export default async function handleRequest(
   request,

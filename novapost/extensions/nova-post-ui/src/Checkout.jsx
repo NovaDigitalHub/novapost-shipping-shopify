@@ -24,11 +24,7 @@ const DeliveryPointSelector = ({ shipment }) => {
 
   const fetchDivisions = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.SHOPIFY_APP_URL}/app/fetch-divisions?_data=routes/app.fetch-divisions`, {
-        method: "POST",
-        body: JSON.stringify({ countryCodes: shipment?.countryCode, city: shipment?.city}),
-      })
-      console.log('before response.ok')
+      const response = await fetch(`${process.env.SHOPIFY_APP_URL}/app/fetch-divisions?_data=routes/app.fetch-divisions&action=getDivision&countryCodes=${encodeURIComponent(shipment?.countryCode)}&settlement=${encodeURIComponent(shipment?.city)}`);
       if (response.ok) {
         const divisions = await response.json();
         const options = [{ value: '', label: 'Select a division...' }];
@@ -45,7 +41,6 @@ const DeliveryPointSelector = ({ shipment }) => {
       console.error('Error fetching divisions:', error);
     }
   }, [shipment?.countryCode]);
-
 
   useEffect(() => {
     (async () => {

@@ -1,0 +1,32 @@
+# fly.toml app configuration file generated for nova-post on 2024-07-05T18:42:09+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'nova-post'
+primary_region = 'waw'
+
+[mounts]
+  source = "data_volume"
+  destination = "/data"
+
+[env]
+  PORT = "8081"
+  SHOPIFY_APP_URL = "https://nova-post.fly.dev"
+  SHOPIFY_API_KEY = "b07072be65359b7700d5109477d934f6"
+  SCOPES = "read_checkouts,read_customers,read_orders,read_shipping,write_checkouts,write_customers,write_orders,write_products,write_shipping"
+
+[build]
+
+[http_service]
+  internal_port = 8081
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

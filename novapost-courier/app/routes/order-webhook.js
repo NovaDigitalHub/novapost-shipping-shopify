@@ -1,8 +1,7 @@
 import { json } from "@remix-run/node";
 import crypto from 'crypto';
-import https from 'https';
-import axios from "axios";
 import { authenticate } from "../shopify.server.js";
+import {createShipment} from "./nova/create-shipment.jsx";
 
 export const action = async ({ request }) => {
   try {
@@ -92,22 +91,13 @@ export const action = async ({ request }) => {
         shopResponse.json()
       ]);
 
-      const response = await axios.post(
-        `${process.env.MICROSERVICE_DOMAIN}/api/proxy/createDocument`,
-        {
-          order: order.data.node,
-          shop: shop.data.shop
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          httpsAgent: new https.Agent({ rejectUnauthorized: false })
-        }
-      );
+      const shipment = await createShipment({
+        order: order.data.node,
+        shop: shop.data.shop
+      });
 
-      console.log('Response from external API:', response.data);
+      const createShipmentResponse = await shipment.json();
+      console.log('Response from external API:', createShipmentResponse.data);
       return json({ status: 'success' },  { status: 200 });
     }
 

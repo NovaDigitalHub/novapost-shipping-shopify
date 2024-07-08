@@ -1,6 +1,8 @@
 import {json} from "@remix-run/node";
-import https from 'https';
-import axios from "axios";
+import db from "../db.server";
+import {validateCountryCodes} from "../models/country.jsx";
+import {mapOrderToCalculation} from "../models/mapping.jsx";
+import {calculateShipment} from "./nova/calculate-shipment.jsx";
 
 export const action = async ({ request }) => {
   try {
@@ -8,33 +10,42 @@ export const action = async ({ request }) => {
 
     if (shopDomain) {
       const callbackBody = await request.json();
-      callbackBody.shopDomain = shopDomain;
-      callbackBody.isCourier = false;
-      const response = await axios.post(`${process.env.MICROSERVICE_DOMAIN}/api/proxy/calculateShipment`, callbackBody, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false })
-      });
-
-      console.log(response);
-      if (response.data.currency_code) {
-        if (response.data.currency_code === callbackBody.rate.currency) {
-          const rates = {
-            service_name: "Nova Post Standard Shipping",
-            description: "Delivery within 5-7 business days",
-            currency: callbackBody.rate.currency,
-            service_code: "NP_STANDARD",
-            total_price: response.data.amount * 100,
-            min_delivery_date: new Date().toISOString(),
-            max_delivery_date: new Date().toISOString()
-          };
-
-          return json({ rates });
-        }
-      } else {
-        console.error('No services found in the standard response');
+      console.log(callbackBody);
+      if (!validateCountryCodes(callbackBody.rate.origin.country) ||
+        !validateCountryCodes(callbackBody.rate.destination.country)) {
+        return json({ error: "Invalid country codes" }, { status: 400 });
       }
+
+      const config = await db.novapostConfig.findFirst({where: { shop_domain: shopDomain }});
+      if (!config) {
+        return json({ error: "Config not found" }, { status: 404 });
+      }
+
+      const mapData = await mapOrderToCalculation(callbackBody, config);
+      console.log(mapData);
+
+      const exchangeAmount = await calculateShipment(
+        mapData,
+        callbackBody.rate.currency,
+        shopDomain,
+        config
+      );
+
+      if (exchangeAmount === null) {
+        throw new Error('Requested currency not found in converted currencies');
+      }
+
+      const rates = {
+        service_name: "Nova Post Standard Shipping",
+        description: "Delivery within 5-7 business days",
+        currency: callbackBody.rate.currency,
+        service_code: "NP_STANDARD",
+        total_price: exchangeAmount * 100,
+        min_delivery_date: new Date().toISOString(),
+        max_delivery_date: new Date().toISOString()
+      };
+
+      return json({ rates });
     }
   } catch (error) {
     console.error('Error calculation document:', error)

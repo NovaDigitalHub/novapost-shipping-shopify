@@ -3,27 +3,31 @@
 client_id = "b07072be65359b7700d5109477d934f6"
 name = "Nova Post"
 handle = "nova-post"
-application_url = "https://flame-fp-tournament-prizes.trycloudflare.com"
+application_url = "https://nova-post.fly.dev"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-dev_store_url = "quickstart-4f00cd57.myshopify.com"
+dev_store_url = "novapost-staging2.myshopify.com"
 include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_checkouts,read_customers,read_orders,read_shipping,write_checkouts,write_orders,write_products,write_shipping"
+scopes = "read_checkouts,read_customers,read_orders,read_shipping,write_checkouts,write_customers,write_orders,write_products,write_shipping"
 
 [auth]
 redirect_urls = [
-  "https://flame-fp-tournament-prizes.trycloudflare.com/auth/callback",
-  "https://flame-fp-tournament-prizes.trycloudflare.com/auth/shopify/callback",
-  "https://flame-fp-tournament-prizes.trycloudflare.com/api/auth/callback"
+  "https://nova-post.fly.dev/auth/callback",
+  "https://nova-post.fly.dev/auth/shopify/callback",
+  "https://nova-post.fly.dev/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-04"
+
+  [[webhooks.subscriptions]]
+  uri = "https://nova-post.fly.dev/webhooks"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
 [pos]
 embedded = false

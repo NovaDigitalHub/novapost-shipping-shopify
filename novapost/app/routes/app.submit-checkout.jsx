@@ -1,7 +1,6 @@
 import {json} from "@remix-run/node";
-import https from 'https';
-import axios from "axios";
 import {authenticate, unauthenticated} from "../shopify.server.js";
+import {createShipment} from "./nova/create-shipment.jsx";
 
 export const action = async ({ request }) => {
   const requestData = await request.json();
@@ -77,26 +76,25 @@ export const action = async ({ request }) => {
   ]);
 
   order.data.node.shippingAddress.divisionId = requestData.selectedDivision;
-  const response = await axios.post(`${process.env.MICROSERVICE_DOMAIN}/api/proxy/createDocument`,
-    {
-      order: order.data.node,
-      shop: shop.data.shop
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      httpsAgent: new https.Agent({ rejectUnauthorized: false })
-    });
 
-  console.log(response);
-  if (response.data) {
-    return json({data: response.data}, {headers: {
-        "Access-Control-Allow-Origin": "*",
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }});
+  console.log(order.data.node);
+  console.log(shop.data.shop);
+
+  const shipment = await createShipment({
+    order: order.data.node,
+    shop: shop.data.shop
+  });
+
+  const createShipmentResponse = await shipment.json();
+  console.log(createShipmentResponse);
+  if (createShipmentResponse.error) {
+    return json({ error: createShipmentResponse.error }, { status: 400 });
   }
+
+  return json({ data: createShipmentResponse.data }, {headers: {
+      "Access-Control-Allow-Origin": "*",
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }});
 };
 
 export default function AdditionalPage() {

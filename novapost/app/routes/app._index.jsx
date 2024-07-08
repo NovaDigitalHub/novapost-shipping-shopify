@@ -1,6 +1,6 @@
-import {useEffect, useState, useCallback} from "react";
-import {json} from "@remix-run/node";
-import {useActionData, useSubmit} from "@remix-run/react";
+import { useEffect, useState, useCallback } from "react";
+import { json } from "@remix-run/node";
+import { useActionData, useSubmit } from "@remix-run/react";
 import {
   BlockStack,
   Box,
@@ -13,23 +13,19 @@ import {
   Select,
   Text,
   TextField,
-  Autocomplete,
-  Icon
+  Autocomplete
 } from "@shopify/polaris";
-import {SearchIcon} from '@shopify/polaris-icons';
-import {authenticate} from "../shopify.server";
-import {novaCountryOptions} from './nova/options.jsx';
+import { authenticate } from "../shopify.server";
+import { novaCountryOptions } from '../models/country.jsx';
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
-
   return null;
 };
 
-export const action = async ({ request, response }) => {
+export const action = async ({ request }) => {
   try {
     const body = await request.json();
-
     const url = new URL(request.url);
     const { admin, session } = await authenticate.admin(request);
 
@@ -38,15 +34,12 @@ export const action = async ({ request, response }) => {
     return json({ status: 'success' });
   } catch (error) {
     console.error('Error:', error);
-    return json({ status: error });
+    return json({ status: error.message });
   }
 };
 
 const syncCarrierService = async (admin, session, url, action) => {
-  const carriers = await admin.rest.resources.CarrierService.all({
-    session: session
-  });
-
+  const carriers = await admin.rest.resources.CarrierService.all({ session });
   const existingCarrier = carriers.data.find(carrier => carrier.name.includes('np_standard'));
 
   const carrierService = new admin.rest.resources.CarrierService({ session });
@@ -103,23 +96,19 @@ export default function Index() {
   const updateCityText = useCallback(
     async (value) => {
       setCity(value);
-
-      if (value.trim().length === 2) {
+      if (value.trim().length < 2) {
         setCityOptions([]);
         return;
       }
 
       try {
-        const response = await fetch(`/fetch-admin-cities`, {
-          method: "POST",
-          body: JSON.stringify({countryCodes: country, query: value}),
-        });
+        const response = await fetch(`/options?action=getCity&countryCodes=${encodeURIComponent(country)}&value=${encodeURIComponent(value)}`);
 
         if (response.ok) {
           const cities = await response.json();
-          const options = cities.data.map((city) => ({
-            value: city,
-            label: city,
+          const options = cities.map((city) => ({
+            value: city.settlement_id,
+            label: city.address_city,
           }));
           setCityOptions(options);
         }
@@ -133,8 +122,8 @@ export default function Index() {
   const updateCitySelection = useCallback(
     (selected) => {
       const selectedCity = cityOptions.find(option => option.value === selected[0]);
-      if (selectedCity) {
-        setCity(selectedCity.label);
+      setCity(selectedCity.label);
+      if (selectedCity && sendFromDivision) {
         fetchDivisionOptions(country, selectedCity.label);
       }
     },
@@ -142,6 +131,8 @@ export default function Index() {
   );
 
   const validate = () => {
+    const emailRegex = /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/;
+
     const newErrors = {};
     if (!apiKey.trim()) newErrors.apiKey = "API Key is required";
     if (!companyTin.trim()) newErrors.companyTin = "Company TIN is required";
@@ -153,7 +144,7 @@ export default function Index() {
     if (!postalCode.trim()) newErrors.postalCode = "Postal Code is required";
     if (!city.trim()) newErrors.city = "City is required";
     if (!phone.trim()) newErrors.phone = "Phone is required";
-    if (!email.trim()) newErrors.email = "Email is required";
+    if (!email.trim() || !emailRegex.test(email)) newErrors.email = "Email is empty or incorrect format";
     if (!width) newErrors.width = "Width is required";
     if (!length) newErrors.length = "Length is required";
     if (!height) newErrors.height = "Height is required";
@@ -164,7 +155,7 @@ export default function Index() {
 
   const fetchConfiguration = async () => {
     try {
-      const response = await fetch('/fetch-configuration', {
+      const response = await fetch('/configuration', {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -175,22 +166,27 @@ export default function Index() {
       }
 
       const responseData = await response.json();
-      if (responseData.data) {
-        setApiKey(atob(responseData.data.config.api_key) || "");
-        setPayerContractNumber(responseData.data.config.payer_contract_number || "");
-        setCompanyTin(responseData.data.config.company_tin || "");
-        setSenderName(responseData.data.config.sender_name || "");
-        setCountry(responseData.data.config.country || "");
-        setAddress(responseData.data.config.address || "");
-        setApartment(responseData.data.config.apartment || "");
-        setPostalCode(responseData.data.config.postal_code || "");
-        setCity(responseData.data.config.city || "");
-        setPhone(responseData.data.config.phone || "");
-        setEmail(responseData.data.config.email || "");
-        setWidth(responseData.data.config.width || "");
-        setLength(responseData.data.config.length || "");
-        setHeight(responseData.data.config.height || "");
-        setDivision(responseData.data.config.division_id || "");
+      if (responseData.config) {
+        setApiKey(atob(responseData.config.api_key) || "");
+        setPayerContractNumber(responseData.config.payer_contract_number || "");
+        setCompanyTin(responseData.config.company_tin || "");
+        setSenderName(responseData.config.sender_name || "");
+        setCountry(responseData.config.country || "");
+        setAddress(responseData.config.address || "");
+        setApartment(responseData.config.apartment || "");
+        setPostalCode(responseData.config.postal_code || "");
+        setCity(responseData.config.city || "");
+        setPhone(responseData.config.phone || "");
+        setEmail(responseData.config.email || "");
+        setWidth(responseData.config.width || "");
+        setLength(responseData.config.length || "");
+        setHeight(responseData.config.height || "");
+        setDivision(responseData.config.division_id || "");
+
+        if (responseData.config.division_id) {
+          setSendFromDivision(true);
+          await fetchDivisionOptions(responseData.config.country, responseData.config.city);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -201,16 +197,13 @@ export default function Index() {
 
   const fetchDivisionOptions = async (country, city) => {
     try {
-      const response = await fetch(`/fetch-admin-divisions`, {
-        method: "POST",
-        body: JSON.stringify({ countryCodes: country, city: city}),
-      });
+      const response = await fetch(`/options?action=getDivision&source=admin&countryCodes=${encodeURIComponent(country)}&settlement=${encodeURIComponent(city)}`);
 
       if (response.ok) {
         const divisions = await response.json();
         const options = [{ value: '', label: 'Select a division...' }];
 
-        divisions.data.forEach(division => {
+        divisions.forEach(division => {
           options.push({
             value: division.id.toString(),
             label: `${division.name} - ${division.address}`
@@ -218,6 +211,19 @@ export default function Index() {
         });
 
         setDivisionOptions(options);
+
+        if (division) {
+          const existingOption = options.find(option => option.value === division);
+          if (!existingOption) {
+            setDivisionOptions(prevOptions => [
+              ...prevOptions,
+              {
+                value: division,
+                label: 'Select a division...'
+              }
+            ]);
+          }
+        }
       }
     } catch (error) {
       console.error(error);
@@ -225,11 +231,11 @@ export default function Index() {
   };
 
   const enableNovaPost = () => {
-    submit({action: 'enable'}, { replace: true, method: "POST", encType: "application/json" });
+    submit({ action: 'enable' }, { replace: true, method: "POST", encType: "application/json" });
   };
 
   const disableNovaPost = () => {
-    submit({action: 'disable'}, { replace: true, method: "POST", encType: "application/json" });
+    submit({ action: 'disable' }, { replace: true, method: "POST", encType: "application/json" });
   };
 
   const handleNovaSubmit = async (event) => {
@@ -240,7 +246,7 @@ export default function Index() {
     }
 
     try {
-      const response = await fetch('/save-configuration', {
+      const response = await fetch('/configuration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,9 +291,18 @@ export default function Index() {
   const cityTextField = (
     <Autocomplete.TextField
       onChange={updateCityText}
+      onBlur={() => {
+        const validCity = cityOptions.find(option => option.label === city);
+        if (!validCity) {
+          setCity("");
+          setDivisionOptions([]);
+        } else {
+          setCity(city)
+          fetchDivisionOptions(country, city);
+        }
+      }}
       label="City"
       value={city}
-      prefix={<Icon source={SearchIcon} tone="base" />}
       placeholder="Enter city"
       autoComplete="off"
     />
@@ -295,7 +310,7 @@ export default function Index() {
 
   return (
     <Page>
-      <ui-title-bar title="Remix app template"/>
+      <ui-title-bar title="Nova Post App" />
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -303,7 +318,7 @@ export default function Index() {
               <BlockStack gap="500">
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
-                    Test Nova Post App
+                    Nova Post Configuration
                   </Text>
                 </BlockStack>
                 {actionData?.status && (
@@ -315,7 +330,7 @@ export default function Index() {
                     borderColor="border"
                     overflowX="scroll"
                   >
-                    <pre style={{margin: 0}}>
+                    <pre style={{ margin: 0 }}>
                       <code>{JSON.stringify(actionData?.status, null, 2)}</code>
                     </pre>
                   </Box>
@@ -359,8 +374,7 @@ export default function Index() {
                   <TextField
                     type={"text"}
                     label="Payer Contract Number"
-                    placeholder={"This is the contract number or tax identification number of the party" +
-                      " accountable for the payment of delivery services in non-cash transactions."}
+                    placeholder={"This is the contract number or tax identification number of the party accountable for the payment of delivery services in non-cash transactions."}
                     value={payerContractNumber}
                     onChange={(value) => setPayerContractNumber(value)}
                     requiredIndicator
@@ -370,8 +384,7 @@ export default function Index() {
                   <TextField
                     type={"text"}
                     label="Company TIN"
-                    placeholder={"The tax identification number or equivalent identifier (EDRPOU, TIN, NIP)" +
-                      " for the sender's company."}
+                    placeholder={"The tax identification number or equivalent identifier (EDRPOU, TIN, NIP) for the sender's company."}
                     value={companyTin}
                     onChange={(value) => setCompanyTin(value)}
                     requiredIndicator
@@ -483,6 +496,8 @@ export default function Index() {
                         setSendFromDivision(isSendingFromDivision);
                         if (isSendingFromDivision) {
                           fetchDivisionOptions(country, city);
+                        } else {
+                          setDivision(null);
                         }
                       }}
                       autoComplete="off"
